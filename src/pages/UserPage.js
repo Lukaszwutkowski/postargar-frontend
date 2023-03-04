@@ -1,69 +1,142 @@
-import React, { useEffect, useReducer } from "react";
-import * as apiCalls from "../api/apiCalls";
+import React, { useState } from "react";
 import { connect } from "react-redux";
+import * as authActions from "../redux/authActions";
 
-const initialState = {
-  user: null,
-  loading: false,
-  error: null,
-};
+export const UserSignupPage = (props) => {
+  const [form, setForm] = useState({
+    displayName: "",
+    username: "",
+    password: "",
+    passwordRepeat: "",
+  });
+  const [errors, setErrors] = useState({});
+  const [pendingApiCall, setPendingApiCall] = useState(false);
 
-const reducer = (state, action) => {
-  switch (action.type) {
-    case "LOADING":
-      return { ...state, loading: true };
-    case "SUCCESS":
-      return { ...state, user: action.payload, loading: false };
-    case "ERROR":
-      return { ...state, error: action.payload, loading: false };
-    default:
-      return state;
-  }
-};
+  const onChange = (event) => {
+    const { value, name } = event.target;
 
-const UserPage = ({ userId }) => {
-  const [state, dispatch] = useReducer(reducer, initialState);
+    setForm((previousForm) => {
+      return {
+        ...previousForm,
+        [name]: value,
+      };
+    });
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      dispatch({ type: "LOADING" });
-      try {
-        const user = await apiCalls.login(userId);
-        dispatch({ type: "SUCCESS", payload: user });
-      } catch (error) {
-        dispatch({ type: "ERROR", payload: error.message });
-      }
+    setErrors((previousErrors) => {
+      return {
+        ...previousErrors,
+        [name]: undefined,
+      };
+    });
+  };
+
+  const onClickSignup = () => {
+    const user = {
+      username: form.username,
+      displayName: form.displayName,
+      password: form.password,
     };
-    fetchUser();
-  }, [userId]);
+    setPendingApiCall(true);
+    props.actions
+      .postSignup(user)
+      .then((response) => {
+        setPendingApiCall(false);
+        props.history.push("/");
+      })
+      .catch((apiError) => {
+        if (apiError.response.data && apiError.response.data.validationErrors) {
+          setErrors(apiError.response.data.validationErrors);
+        }
+        setPendingApiCall(false);
+      });
+  };
 
-  const { user, loading, error } = state;
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  if (!user) {
-    return <div>User not found</div>;
+  let passwordRepeatError;
+  const { password, passwordRepeat } = form;
+  if (password || passwordRepeat) {
+    passwordRepeatError =
+      password === passwordRepeat ? "" : "Does not match to password";
   }
 
   return (
-    <div>
-      <h1>{user.name}</h1>
-      <p>{user.bio}</p>
-      {/* render other user details */}
+    <div className="container">
+      <h1 className="text-center">Sign Up</h1>
+      <div className="col-12 mb-3">
+        <input
+          name="displayName"
+          label="Display Name"
+          placeholder="Your display name"
+          value={form.displayName}
+          onChange={onChange}
+          hasError={errors.displayName && true}
+          error={errors.displayName}
+        />
+      </div>
+      <div className="col-12 mb-3">
+        <input
+          name="username"
+          label="Username"
+          placeholder="Your username"
+          value={form.username}
+          onChange={onChange}
+          hasError={errors.username && true}
+          error={errors.username}
+        />
+      </div>
+      <div className="col-12 mb-3">
+        <input
+          name="password"
+          label="Password"
+          placeholder="Your password"
+          type="password"
+          value={form.password}
+          onChange={onChange}
+          hasError={errors.password && true}
+          error={errors.password}
+        />
+      </div>
+      <div className="col-12 mb-3">
+        <input
+          name="passwordRepeat"
+          label="Password Repeat"
+          placeholder="Repeat your password"
+          type="password"
+          value={form.passwordRepeat}
+          onChange={onChange}
+          hasError={passwordRepeatError && true}
+          error={passwordRepeatError}
+        />
+      </div>
+      <div className="text-center">
+        <button
+          onClick={onClickSignup}
+          disabled={pendingApiCall || passwordRepeatError ? true : false}
+          pendingApiCall={pendingApiCall}
+          text="Sign Up"
+        />
+      </div>
     </div>
   );
 };
 
-const mapStateToProps = (state) => {
+UserSignupPage.defaultProps = {
+  actions: {
+    postSignup: () =>
+      new Promise((resolve, reject) => {
+        resolve({});
+      }),
+  },
+  history: {
+    push: () => {},
+  },
+};
+
+const mapDispatchToProps = (dispatch) => {
   return {
-    loggedInUser: state,
+    actions: {
+      postSignup: (user) => dispatch(authActions.signupHandler(user)),
+    },
   };
 };
 
-export default connect(mapStateToProps)(UserPage);
+export default connect(null, mapDispatchToProps)(UserSignupPage);

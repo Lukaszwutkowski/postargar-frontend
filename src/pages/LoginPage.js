@@ -1,96 +1,101 @@
-import React from "react";
-import axios from "axios";
-import { Form, FormGroup, Label, Input, Button, Alert } from "reactstrap";
+import React, { useState, useEffect } from "react";
 import { connect } from "react-redux";
 import * as authActions from "../redux/authActions";
-import UserPage from "./UserPage";
 
-export class LoginPage extends React.Component {
-  state = {
-    username: "",
-    password: "",
-    error: "",
+export const LoginPage = (props) => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [apiError, setApiError] = useState("");
+  const [pendingApiCall, setPendingApiCall] = useState(false);
+
+  useEffect(() => {
+    setApiError("");
+  }, [username, password]);
+
+  const onClickLogin = () => {
+    const body = {
+      username,
+      password,
+    };
+    setPendingApiCall(true);
+    props.actions
+      .postLogin(body)
+      .then((response) => {
+        setPendingApiCall(false);
+        props.history.push("/");
+      })
+      .catch((error) => {
+        if (error.response) {
+          setPendingApiCall(false);
+          setApiError(error.response.data.message);
+        }
+      });
   };
 
-  onChangeUsername = (event) => {
-    const value = event.target.value;
-    this.setState({ username: value });
-  };
-
-  onChangePassword = (event) => {
-    const value = event.target.value;
-    this.setState({ password: value });
-  };
-
-  onSubmit = (event) => {
-    event.preventDefault();
-
-    // Perform validation
-    if (this.state.username === "" || this.state.password === "") {
-      this.setState({ error: "Please enter a username and password." });
-    } else if (this.state.password.length < 8) {
-      this.setState({ error: "Password must be at least 8 characters long." });
-    } else {
-      // If validation passes, proceed with login
-      axios
-        .post("http://localhost:8080/api/1.0/login", {
-          username: this.state.username,
-          password: this.state.password,
-        })
-        .then((response) => {
-          const token = response.data.access_token;
-          this.setState({ token: token });
-          this.mapDispatchToProps(UserPage);
-        })
-        .catch((error) => {
-          // Handle error
-          this.setState({ error: "Login failed. Please try again." });
-        });
-    }
-  };
-
-  render() {
-    return (
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="col-sm-6">
-            <Form onSubmit={this.onSubmit}>
-              <h1>Login</h1>
-
-              {this.state.error && (
-                <Alert color="danger">{this.state.error}</Alert>
-              )}
-
-              <FormGroup>
-                <Label for="username">Username</Label>
-                <Input
-                  type="text"
-                  id="username"
-                  value={this.state.username}
-                  onChange={this.onChangeUsername}
-                />
-              </FormGroup>
-
-              <FormGroup>
-                <Label for="password">Password</Label>
-                <Input
-                  type="password"
-                  id="password"
-                  value={this.state.password}
-                  onChange={this.onChangePassword}
-                />
-              </FormGroup>
-
-              <Button color="primary" type="submit">
-                Login
-              </Button>
-            </Form>
-          </div>
-        </div>
-      </div>
-    );
+  let disableSubmit = false;
+  if (username === "") {
+    disableSubmit = true;
   }
-}
+  if (password === "") {
+    disableSubmit = true;
+  }
+
+  return (
+    <div className="container">
+      <h1 className="text-center">Login</h1>
+      <div className="col-12 mb-3">
+        <label htmlFor="username" className="form-label">
+          Username
+        </label>
+        <input
+          type="text"
+          className="form-control"
+          id="username"
+          placeholder="Your username"
+          value={username}
+          onChange={(event) => {
+            setUsername(event.target.value);
+          }}
+        />
+      </div>
+      <div className="col-12 mb-3">
+        <label htmlFor="password" className="form-label">
+          Password
+        </label>
+        <input
+          type="password"
+          className="form-control"
+          id="password"
+          placeholder="Your password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+      </div>
+      {apiError && (
+        <div className="col-12 mb-3">
+          <div className="alert alert-danger">{apiError}</div>
+        </div>
+      )}
+      <div className="text-center">
+        <button
+          className="btn btn-primary"
+          onClick={onClickLogin}
+          disabled={disableSubmit || pendingApiCall}
+        >
+          {pendingApiCall ? "Loading..." : "Login"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+LoginPage.defaultProps = {
+  actions: {
+    postLogin: () => new Promise((resolve, reject) => resolve({})),
+  },
+  dispatch: () => {},
+};
+
 const mapDispatchToProps = (dispatch) => {
   return {
     actions: {

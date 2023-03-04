@@ -9,7 +9,7 @@ class TopBar extends React.Component {
       <nav className="navbar navbar-expand-lg navbar-light bg-light">
         <div className="container">
           <Link className="navbar-brand" to="/">
-            <img src={logo} alt="Postagram Logo" height="30" />
+            <img src={logo} alt="Postagram Logo" height="120" />
           </Link>
           <button
             className="navbar-toggler"

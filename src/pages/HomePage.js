@@ -1,40 +1,27 @@
-import React, { useState, useEffect } from "react";
-import * as apiCalls from "../api/apiCalls";
+import React from "react";
+import UserList from "../components/UserList";
 import { connect } from "react-redux";
 
-const HomePage = () => {
-  const [posts, setPosts] = useState([]);
+class HomePage extends React.Component {
+  render() {
+    const { isLoggedIn } = this.props.loggedInUser;
 
-  useEffect(() => {
-    const loadPosts = async () => {
-      try {
-        const response = await apiCalls.login();
-        setPosts(response.data);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    loadPosts();
-  }, []);
-
-  return (
-    <div className="container">
-      <h1 className="text-center">Posts</h1>
-      <div className="row">
-        {posts.map((post) => (
-          <div className="col-md-4 mb-4" key={post.id}>
-            <div className="card">
-              <div className="card-body">
-                <h5 className="card-title">{post.title}</h5>
-                <p className="card-text">{post.content}</p>
-              </div>
+    return (
+      <div data-testid="homepage">
+        <div className="row">
+          {isLoggedIn && (
+            <div className="col-8">
+              <h2>Submit your POSTAGRAM here!</h2>
             </div>
+          )}
+          <div className={isLoggedIn ? "col-4" : "col-12"}>
+            <UserList />
           </div>
-        ))}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  }
+}
 
 const mapStateToProps = (state) => {
   return {
